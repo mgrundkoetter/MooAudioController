@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Basic usage example for MooAudioController</title>
+	<script src="//ajax.googleapis.com/ajax/libs/mootools/1.4.5/mootools-yui-compressed.js"></script>
+	<script type="text/javascript" src="../src/MooAudioController.js"></script>
+	<script type="text/javascript">
+		window.addEvent('domready', function() {
+			var soundController = new MooAudioController();
+			soundController.registerAudioElement("sample-sound");
+
+			document.id("btn-play").addEvent("click", function(event) {
+				event.preventDefault();
+				soundController.playSound("sample-sound");
+			});
+			document.id("btn-pause").addEvent("click", function(event) {
+				event.preventDefault();
+				soundController.pauseSound("sample-sound");
+			});
+			document.id("btn-stop").addEvent("click", function(event) {
+				event.preventDefault();
+				soundController.stopSound("sample-sound");
+			});
+		});
+	</script>
+</head>
+<body>
+	<h1>Basic usage example for MooAudioController</h1>
+
+	<p>
+		All sounds are paused when the window loses focus and resumed when it gets back focus.<br>
+		This behaviour can be prevented using the stopSound() method.
+	</p>
+
+	<audio controls="true" id="sample-sound" loop autoplay>
+		<source src="http://upload.wikimedia.org/wikipedia/en/0/04/Rayman_2_music_sample.ogg" type="audio/mpeg">
+	</audio>
+
+	<p>
+		<a href="#" id="btn-play">Play sound</a>
+		<a href="#" id="btn-pause">Pause sound</a>
+		<a href="#" id="btn-stop">Stop sound</a>
+	</p>
+</body>
+</html>
