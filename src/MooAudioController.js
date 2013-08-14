@@ -1,10 +1,10 @@
 /**
  * TODOs:
- * - add events (play, pause, loaded)
+ * - fire events (play, pause, loaded)
  * - add helper method to create audio dom elements
  *
  * @type {Class}
- * @version 0.1
+ * @version 0.2
  */
 var MooAudioController = new Class({
 
@@ -17,6 +17,7 @@ var MooAudioController = new Class({
 	sounds: {},
 	currentlyPlaying: [],
 	pausedSounds: [],
+	pausedByPauseAll: [],
 
 	/**
 	 * Constructor.
@@ -50,6 +51,7 @@ var MooAudioController = new Class({
 				var audioId = event.target.getAttribute('id');
 				this.currentlyPlaying.erase(audioId);
 				this.pausedSounds.erase(audioId);
+				this.pausedByPauseAll.erase(audioId);
 			}.bind(this));
 			audioElement.addEventListener('pause', function(event) {
 				var audioId = event.target.getAttribute('id');
@@ -59,6 +61,7 @@ var MooAudioController = new Class({
 				var audioId = event.target.getAttribute('id');
 				this.currentlyPlaying.push(audioId);
 				this.pausedSounds.erase(audioId);
+				this.pausedByPauseAll.erase(audioId);
 			}.bind(this));
 		}
 		return this;
@@ -114,20 +117,24 @@ var MooAudioController = new Class({
 	 * @see resumeAllPaused
 	 */
 	pauseAll: function() {
-		this.currentlyPlaying.each(this.pauseSound, this);
+		this.currentlyPlaying.each(function(audioId) {
+			var audioElement = this.getAudioElement(audioId);
+			if (audioElement != null) {
+				audioElement.pause();
+				this.pausedByPauseAll.push(audioId);
+			}
+		}, this);
 		return this;
 	},
 
 	/**
-	 * Resumes all paused sounds, regardless whether paused by pause(), pauseSound() or pauseAll().
-	 * If the sound shall NOT be resumed, use stopSound()
+	 * Resumes all paused sounds which have been paused by pauseAll().
 	 * @returns {MooAudioController}
 	 * @see pauseAll
-	 * @see pauseSound
-	 * @see stopSound
 	 */
 	resumeAllPaused: function() {
-		this.pausedSounds.each(this.playSound, this);
+		this.pausedByPauseAll.each(this.playSound, this);
+		this.pausedByPauseAll = [];
 		return this;
 	},
 
