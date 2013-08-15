@@ -4,20 +4,22 @@
  * - add helper method to create audio dom elements
  *
  * @type {Class}
- * @version 0.2
+ * @version 0.3
  */
 var MooAudioController = new Class({
 
 	Implements: [Options, Events],
 
 	options: {
-		pauseAllOnLostWindowFocus: true
+		pauseAllOnLostWindowFocus: true,
+		cookieName: "mooAudio-"
 	},
 
 	sounds: {},
 	currentlyPlaying: [],
 	pausedSounds: [],
 	pausedByPauseAll: [],
+	isMuted: false,
 
 	/**
 	 * Constructor.
@@ -25,7 +27,7 @@ var MooAudioController = new Class({
 	 */
 	initialize: function(options) {
 		this.setOptions(options);
-
+		this.isMuted = Cookie.read(this.options.cookieName + "isMuted") == 1;
 		if (this.options.pauseAllOnLostWindowFocus) {
 			window.addEvents({
 				blur: this.pauseAll.bind(this),
@@ -44,7 +46,7 @@ var MooAudioController = new Class({
 		var audioElement = document.id(audioId);
 		if (audioElement) {
 			this.sounds[audioId] = audioElement;
-			if (audioElement.hasAttribute('autoplay')) {
+			if (audioElement.hasAttribute('autoplay') && !this.isMuted) {
 				this.currentlyPlaying.push(audioId);
 			}
 			audioElement.addEventListener('ended', function(event) {
@@ -59,9 +61,14 @@ var MooAudioController = new Class({
 			}.bind(this));
 			audioElement.addEventListener('play', function(event) {
 				var audioId = event.target.getAttribute('id');
-				this.currentlyPlaying.push(audioId);
-				this.pausedSounds.erase(audioId);
-				this.pausedByPauseAll.erase(audioId);
+				if (this.isMuted) {
+					this.stopSound(audioId);
+					this.pausedByPauseAll.push(audioId);
+				} else {
+					this.currentlyPlaying.push(audioId);
+					this.pausedSounds.erase(audioId);
+					this.pausedByPauseAll.erase(audioId);
+				}
 			}.bind(this));
 		}
 		return this;
@@ -74,8 +81,12 @@ var MooAudioController = new Class({
 	 */
 	playSound: function(domElementOrId) {
 		var audioElement = this.getAudioElement(domElementOrId);
-		if (audioElement != null) {
-			audioElement.play();
+		if (!this.isMuted) {
+			if (audioElement != null) {
+				audioElement.play();
+			}
+		} else {
+			this.pausedByPauseAll.push(audioElement.getAttribute('id'));
 		}
 		return this;
 	},
@@ -133,8 +144,26 @@ var MooAudioController = new Class({
 	 * @see pauseAll
 	 */
 	resumeAllPaused: function() {
-		this.pausedByPauseAll.each(this.playSound, this);
-		this.pausedByPauseAll = [];
+		if (!this.isMuted) {
+			this.pausedByPauseAll.each(this.playSound, this);
+			this.pausedByPauseAll = [];
+		}
+		return this;
+	},
+
+	/**
+	 * Sets mute state.
+	 * @param {Boolean} newMutedValue True if all sounds should be muted (paused)
+	 * @returns {MooAudioController}
+	 */
+	setMuted: function(newMutedValue) {
+		this.isMuted = !!newMutedValue;
+		Cookie.write(this.options.cookieName + "isMuted", this.isMuted ? 1 : 0, {duration: 30});
+		if (this.isMuted) {
+			this.pauseAll();
+		} else {
+			this.resumeAllPaused();
+		}
 		return this;
 	},
 
